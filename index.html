@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cortisol Level</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            background-color: #08080c;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .card {
+            background: linear-gradient(145deg, #12121a, #1a1a26);
+            padding: 35px 25px 30px 25px;
+            border-radius: 28px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            text-align: center;
+            width: 100%;
+            max-width: 380px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        h2 {
+            margin: 0 0 25px 0;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(180deg, #fff 0%, #b5b5c0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .gauge-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            cursor: pointer;
+            touch-action: none;
+        }
+        
+        /* Zonen-Beschriftung unterhalb des Tachos */
+        .labels-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            padding: 10px 15px 25px 15px;
+        }
+        .zone-label {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .zone-low { color: #3498db; }
+        .zone-mid { color: #2ecc71; }
+        .zone-high { color: #e74c3c; }
+
+        /* Ergebnis-Box */
+        .status-box {
+            padding: 15px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            min-height: 58px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        .status-display {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+        /* Branding unten */
+        .branding {
+            margin-top: 25px;
+            font-size: 11px;
+            color: #484850;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 15px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Cortisol</h2>
+    
+    <div class="gauge-wrapper">
+        <canvas id="gauge-canvas" width="300" height="165"></canvas>
+        
+        <div class="labels-container">
+            <span class="zone-label zone-low">Low</span>
+            <span class="zone-label zone-mid">Medium</span>
+            <span class="zone-label zone-high">High</span>
+        </div>
+    </div>
+    
+    <div id="status-container" class="status-box">
+        <div id="status" class="status-display">MEDIUM</div>
+    </div>
+    
+    <div class="branding">
+        Github: Pixel1510
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gauge-canvas');
+    const ctx = canvas.getContext('2d');
+    const statusDiv = document.getElementById('status');
+    const statusContainer = document.getElementById('status-container');
+
+    const cx = canvas.width / 2;
+    const cy = canvas.height - 15;
+    const r = 120; 
+
+    const startAngle = Math.PI;
+    const endAngle = 2 * Math.PI;
+
+    let currentValue = 0.5; 
+    let isDragging = false;
+
+    const colors = {
+        low: '#3498db',
+        medium: '#2ecc71',
+        high: '#e74c3c',
+        needle: '#ffffff'
+    };
+
+    function drawGauge() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const thickness = 24;
+        ctx.lineWidth = thickness;
+        ctx.lineCap = 'round';
+
+        const oneThird = (endAngle - startAngle) / 3;
+
+        // LOW
+        ctx.strokeStyle = colors.low;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, startAngle, startAngle + oneThird);
+        ctx.stroke();
+
+        // MEDIUM
+        ctx.strokeStyle = colors.medium;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, startAngle + oneThird, startAngle + 2 * oneThird);
+        ctx.stroke();
+
+        // HIGH
+        ctx.strokeStyle = colors.high;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, startAngle + 2 * oneThird, endAngle);
+        ctx.stroke();
+
+        // Zeiger zeichnen
+        const currentAngle = startAngle + currentValue * (endAngle - startAngle);
+        
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(currentAngle);
+
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+
+        ctx.fillStyle = colors.needle;
+        ctx.beginPath();
+        ctx.moveTo(0, -4);
+        ctx.lineTo(r - 10, 0); 
+        ctx.lineTo(0, 4);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.arc(0, 0, 8, 0, 2 * Math.PI);
+        ctx.fillStyle = '#12121a';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = colors.needle;
+        ctx.stroke();
+
+        ctx.restore();
+
+        updateStatusText();
+    }
+
+    function updateStatusText() {
+        let activeColor = '';
+        let text = '';
+        let glowColor = '';
+
+        if (currentValue < 0.33) {
+            text = "LOW";
+            activeColor = colors.low;
+            glowColor = 'rgba(52, 152, 219, 0.15)';
+        } else if (currentValue > 0.66) {
+            text = "HIGH";
+            activeColor = colors.high;
+            glowColor = 'rgba(231, 76, 60, 0.15)';
+        } else {
+            text = "MEDIUM";
+            activeColor = colors.medium;
+            glowColor = 'rgba(46, 204, 113, 0.15)';
+        }
+
+        statusDiv.innerText = text;
+        statusDiv.style.color = activeColor;
+        
+        statusContainer.style.borderColor = activeColor + '33'; 
+        statusContainer.style.boxShadow = `0 4px 25px ${glowColor}`;
+    }
+
+    function handleMove(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        const x = (clientX - rect.left) * scaleX - cx;
+        const y = (clientY - rect.top) * scaleY - cy;
+
+        let angle = Math.atan2(y, x);
+
+        if (angle < 0 && angle > -Math.PI) {
+            angle = angle + 2 * Math.PI;
+        }
+
+        if (angle < Math.PI) {
+            if (x < 0) angle = Math.PI;
+            else angle = 2 * Math.PI;
+        }
+
+        currentValue = (angle - Math.PI) / Math.PI;
+        drawGauge();
+    }
+
+    // Maus Events
+    canvas.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        handleMove(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (isDragging) handleMove(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    // Touch Events (Mobile)
+    canvas.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        if(e.touches.length === 1) {
+            handleMove(e.touches[0].clientX, e.touches[0].clientY);
+        }
+    });
+
+    window.addEventListener('touchmove', (e) => {
+        if (isDragging && e.touches.length === 1) {
+            handleMove(e.touches[0].clientX, e.touches[0].clientY);
+        }
+    });
+
+    window.addEventListener('touchend', () => { isDragging = false; });
+
+    // Initialer Start
+    drawGauge();
+</script>
+
+</body>
+</html>
